@@ -1,0 +1,12 @@
+.env
+.outputs.cache
+.*.swp
+/.terraform
+/output.json
+/output-*.json
+/.aws-rie
+/terraform.tfstate*
+/*.auto.tfvars
+/**/*.zip
+/layers/bash/bin/*
+/input.json

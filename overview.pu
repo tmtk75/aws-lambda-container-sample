@@ -1,0 +1,77 @@
+@startuml
+!$mainColor = "indigo"
+!$mainElementBgcolor = "#ffffff"
+skinparam DefaultFontName Helvetica Neue
+skinparam shadowing false
+skinparam BackgroundColor transparent
+skinparam Control {
+    BackgroundColor $mainElementBgcolor
+    BorderColor $mainColor
+}
+skinparam ArrowColor $mainColor
+skinparam ArrowThickness 2
+skinparam BorderColor $mainColor
+
+skinparam RoundCorner 8
+skinparam rectangle {
+    BorderColor #808080
+}
+
+'
+' https://github.com/awslabs/aws-icons-for-plantuml/find/v10.0
+'
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v10.0/dist
+!includeurl AWSPuml/AWSCommon.puml
+
+' !includeurl AWSPuml/AWSSimplified.puml
+' Overwrite some attributes without AWSSimplified.puml
+!define AWS_BORDER_COLOR transparent
+
+!includeurl AWSPuml/General/User.puml
+!includeurl AWSPuml/General/Client.puml
+!includeurl AWSPuml/Compute/Lambda.puml
+!includeurl AWSPuml/Storage/SimpleStorageServiceBucket.puml
+!includeurl AWSPuml/Storage/SimpleStorageServiceObject.puml
+!includeurl AWSPuml/Analytics/KinesisFirehose.puml
+!includeurl AWSPuml/Containers/ElasticContainerRegistry.puml
+!includeurl AWSPuml/ManagementGovernance/CloudwatchLogs.puml
+!includeurl AWSPuml/SecurityIdentityCompliance/IdentityAccessManagementRole.puml
+
+' left to right direction
+top to bottom direction
+
+User(User, "Actor", "Invoke the event source")
+Lambda(EventSourceLambda, "Event source", "")
+ElasticContainerRegistry(ImageRegistry, "Store images", "")
+SimpleStorageServiceBucket(S3Bucket, "Records are propagated", "")
+CloudWatchLogs(CWLogsLogGroup, "Target log group", "", "")
+
+User -[#black,dashed,thickness=4]-> EventSourceLambda
+' ImageRegistry .. EventSourceLambda
+EventSourceLambda .. CWLogsLogGroup
+
+rectangle "Scenario firehose propagates" {
+    Lambda(LambdaProcessor, "Transform records", "")
+    KinesisFirehose(FirehoseS3Destination, "Propagate records", "")
+    IdentityAccessManagementRole(IAMRoleSubscriptionFilter, "Allow PassRole", "Mediate the firehose and the log group")
+    IdentityAccessManagementRole(IAMRoleFirehose, "Allow a few actions", "Allow to write to the bucket and invoke the processor")
+    control "==Assocaite the firehose with the log group" <<SubscriptionFilter>> as SubscriptionFilterFirehose
+
+    LambdaProcessor .. FirehoseS3Destination
+    ' ImageRegistry .. LambdaProcessor
+    SubscriptionFilterFirehose .. CWLogsLogGroup
+    SubscriptionFilterFirehose .. IAMRoleSubscriptionFilter
+    SubscriptionFilterFirehose .. FirehoseS3Destination
+    FirehoseS3Destination .. IAMRoleFirehose
+    FirehoseS3Destination .. S3Bucket
+}
+
+rectangle "Scenario to subscribe simply" {
+    control "==Associate the lambda with the log group" <<SubscriptionFilter>> as SubscriptionFilterLambda
+    Lambda(Lambdasubscribe, "Process log events", "")
+
+    SubscriptionFilterLambda . CWLogsLogGroup
+    SubscriptionFilterLambda .. Lambdasubscribe
+}
+
+@enduml

@@ -1,0 +1,6 @@
+apache-maven-*
+*-reduced-*.xml
+/target
+/.classpath
+/.project
+/.settings
