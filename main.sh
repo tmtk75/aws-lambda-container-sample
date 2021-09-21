@@ -18,15 +18,23 @@ function_name_main=$(jq -r .lambda_name_main.value < ${outputs_cache})
 function_name_processor=$(jq -r .lambda_name_processor.value < ${outputs_cache})
 function_name_subscribe=$(jq -r .lambda_name_subscribe.value < ${outputs_cache})
 function_name_custom=$(jq -r .lambda_name_custom.value < ${outputs_cache})
+function_name_efs=$(jq -r .lambda_name_efs.value < ${outputs_cache})
 repository_name=$(jq -r .repository_name.value < ${outputs_cache})
 repository_url=$(jq -r .repository_url.value < ${outputs_cache})
 bucket_url=s3://$(jq -r .bucket_name.value < ${outputs_cache})
 
 function invoke() {
+  local kind=${1-main}
+  local _func_name
+  case $kind in
+    main) _func_name=${function_name_main};;
+    efs)  _func_name=${function_name_efs};;
+  esac
+
   aws lambda invoke \
-    --function-name ${function_name_main} \
+    --function-name ${_func_name} \
     --cli-binary-format raw-in-base64-out \
-    --payload '{"name":"'${1-""}'"}' \
+    --payload '{"name":"exec at '`date -u +%Y%m%dT%H%M%S`'"}' \
     output.json \
     && cat output.json
 }
@@ -60,12 +68,12 @@ function push() {
 }
 
 function update-func() {
-  kind=${1-main}
+  local kind=${1-main}
   local _tag=${2-nodejs}
   local _func_name
   case $kind in
-    main)       _func_name=${function_name_main};;
-    processor)  _func_name=${function_name_processor};;
+    main)      _func_name=${function_name_main};;
+    processor) _func_name=${function_name_processor};;
     subscribe) _func_name=${function_name_subscribe};;
   esac
 
@@ -81,20 +89,22 @@ function update-func() {
 function tail() {
   kind=${1-main}
   case $kind in
-    main)       aws logs tail --follow "/aws/lambda/${function_name_main}";;
-    processor)  aws logs tail --follow "/aws/lambda/${function_name_processor}";;
+    main)      aws logs tail --follow "/aws/lambda/${function_name_main}";;
+    processor) aws logs tail --follow "/aws/lambda/${function_name_processor}";;
     subscribe) aws logs tail --follow "/aws/lambda/${function_name_subscribe}";;
-    custom)     aws logs tail --follow "/aws/lambda/${function_name_custom}";;
+    custom)    aws logs tail --follow "/aws/lambda/${function_name_custom}";;
+    efs   )    aws logs tail --follow "/aws/lambda/${function_name_efs}";;
   esac
 }
 
 function get-func() {
   kind=${1-main}
   case $kind in
-    main)       aws lambda get-function --function-name "${function_name_main}";;
-    processor)  aws lambda get-function --function-name "${function_name_processor}";;
+    main)      aws lambda get-function --function-name "${function_name_main}";;
+    processor) aws lambda get-function --function-name "${function_name_processor}";;
     subscribe) aws lambda get-function --function-name "${function_name_subscribe}";;
-    custom)     aws lambda get-function --function-name "${function_name_custom}";;
+    custom)    aws lambda get-function --function-name "${function_name_custom}";;
+    efs)       aws lambda get-function --function-name "${function_name_efs}";;
   esac
 }
 
@@ -143,6 +153,14 @@ function update-func-custom() {
 }
 
 function invoke-custom() {
+  _func_name=${funciton_name_custom} _invoke $*
+}
+
+function invoke-efs() {
+  _func_name=${function_name_efs} _invoke $*
+}
+
+function _invoke() {
   fp=${1-""}
   if [ -e "$fp" ]; then
     payload=$(cat $fp)
@@ -150,7 +168,7 @@ function invoke-custom() {
     payload=$(cat)
   fi
   aws lambda invoke \
-    --function-name ${function_name_custom} \
+    --function-name ${_func_name} \
     --cli-binary-format raw-in-base64-out \
     --payload "${payload}" \
     output-custom.json \

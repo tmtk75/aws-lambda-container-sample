@@ -43,3 +43,9 @@ module "bash-runtime" {
   lambda_config = local.lambda_config
 }
 
+module "efs" {
+  source        = "./modules/with-efs"
+  prefix        = local.prefix
+  vpc_id        = var.vpc_id
+  lambda_config = local.lambda_config
+}

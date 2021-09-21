@@ -22,6 +22,10 @@ output "lambda_name_custom" {
   value = module.bash-runtime.function_name
 }
 
+output "lambda_name_efs" {
+  value = module.efs.function_name
+}
+
 output "bucket_name" {
   value = local.bucket_name
 }

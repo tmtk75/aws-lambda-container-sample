@@ -44,15 +44,12 @@ resource "aws_ecr_repository" "main" {
 }
 
 resource "aws_security_group" "main" {
-  name        = "${local.prefix}-main"
-  description = "${local.prefix}-main Kinesis Firehose sample."
+  name        = "${local.prefix}main"
+  description = "${local.prefix}main Kinesis Firehose sample."
   vpc_id      = data.aws_vpc.main.id
 }
 
-
-/*
- *
- */
+# simple role to execute lambda.
 resource "aws_iam_role" "lambda-exec" {
   name               = "${local.prefix}lambda-exec"
   assume_role_policy = data.aws_iam_policy_document.lambda-exec.json
@@ -71,13 +68,20 @@ data "aws_iam_policy_document" "lambda-exec" {
   }
 }
 
+locals {
+  managedRoles = [
+    "AWSLambdaVPCAccessExecutionRole",
+  ]
+}
+
 resource "aws_iam_role_policy_attachment" "lambda-exec" {
+  count      = length(local.managedRoles)
   role       = aws_iam_role.lambda-exec.id
-  policy_arn = data.aws_iam_policy.lambda-exec.arn
+  policy_arn = data.aws_iam_policy.lambda-exec[count.index].arn
 }
 
 data "aws_iam_policy" "lambda-exec" {
-  #arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  name = "AWSLambdaVPCAccessExecutionRole"
+  count = length(local.managedRoles)
+  name  = local.managedRoles[count.index]
 }
 
