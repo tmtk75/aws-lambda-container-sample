@@ -21,22 +21,19 @@ function_name_custom=$(jq -r .lambda_name_custom.value < ${outputs_cache})
 function_name_efs=$(jq -r .lambda_name_efs.value < ${outputs_cache})
 repository_name=$(jq -r .repository_name.value < ${outputs_cache})
 repository_url=$(jq -r .repository_url.value < ${outputs_cache})
+prefix=$(jq -r .prefix.value < ${outputs_cache})
 bucket_url=s3://$(jq -r .bucket_name.value < ${outputs_cache})
 
-function invoke() {
-  local kind=${1-main}
-  local _func_name
-  case $kind in
-    main) _func_name=${function_name_main};;
-    efs)  _func_name=${function_name_efs};;
-  esac
+function invoke-main() {
+  _func_name=$(_func_name main) _invoke '{"name":"exec at '`date -u +%Y%m%dT%H%M%S`'"}'
+}
 
-  aws lambda invoke \
-    --function-name ${_func_name} \
-    --cli-binary-format raw-in-base64-out \
-    --payload '{"name":"exec at '`date -u +%Y%m%dT%H%M%S`'"}' \
-    output.json \
-    && cat output.json
+function invoke-custom() {
+  _func_name=$(_func_name custom) _invoke $*
+}
+
+function invoke-efs() {
+  _func_name=$(_func_name efs) _invoke $*
 }
 
 function ls-s3() {
@@ -55,6 +52,12 @@ function cleanup-s3() {
   aws s3 rm --recursive ${bucket_url}
 }
 
+function cleanup-log-groups() {
+  for name in custom efs main processor ruby subscribe; do
+    aws logs delete-log-group --log-group "/aws/lambda/${prefix}${name}"
+  done
+}
+
 function docker-login() {
   aws ecr get-login-password | docker login --username AWS --password-stdin ${repository_url}
 }
@@ -68,33 +71,15 @@ function push() {
 }
 
 function update-func() {
-  local kind=${1-main}
+  local fn=`_func_name ${1}`
   local _tag=${2-nodejs}
-  local _func_name
-  case $kind in
-    main)      _func_name=${function_name_main};;
-    processor) _func_name=${function_name_processor};;
-    subscribe) _func_name=${function_name_subscribe};;
-  esac
-
   aws lambda update-function-code \
-    --function-name ${_func_name} \
+    --function-name ${fn} \
     --image-uri ${repository_url}:${_tag} \
     | cat
   while [ `./main.sh get-func ${kind} | jq -r .Configuration.LastUpdateStatus` != "Successful" ] ; do
     printf .; sleep 1; done
   echo
-}
-
-function _func_name() {
-  local kind=${1-main}
-  case $kind in
-    main)      echo ${function_name_main};;
-    processor) echo ${function_name_processor};;
-    subscribe) echo ${function_name_subscribe};;
-    custom)    echo ${function_name_custom};;
-    efs)       echo ${function_name_efs};;
-  esac
 }
 
 function tail() { # <name>
@@ -103,14 +88,8 @@ function tail() { # <name>
 }
 
 function get-func() {
-  kind=${1-main}
-  case $kind in
-    main)      aws lambda get-function --function-name "${function_name_main}";;
-    processor) aws lambda get-function --function-name "${function_name_processor}";;
-    subscribe) aws lambda get-function --function-name "${function_name_subscribe}";;
-    custom)    aws lambda get-function --function-name "${function_name_custom}";;
-    efs)       aws lambda get-function --function-name "${function_name_efs}";;
-  esac
+  fn=`_func_name ${1}`
+  aws lambda get-function --function-name "${fn}"
 }
 
 function list-digests() {
@@ -148,7 +127,7 @@ function _batch-delete-image() {
 
 function invoke-after-update() {
   local _tag=${1-main}
-  make build-nodejs && ./main.sh push && ./main.sh update-func $_tag && ./main.sh invoke `date +%H:%M`
+  make build-nodejs && ./main.sh push && ./main.sh update-func $_tag && ./main.sh invoke-main `date +%H:%M`
 }
 
 function update-func-custom() {
@@ -157,12 +136,15 @@ function update-func-custom() {
     -target aws_lambda_layer_version.bash-runtime
 }
 
-function invoke-custom() { # [payload]
-  _func_name=${funciton_name_custom} _invoke $*
-}
-
-function invoke-efs() { # [payload]
-  _func_name=${function_name_efs} _invoke $*
+function _func_name() {
+  local kind=${1-main}
+  case $kind in
+    main)      echo ${function_name_main};;
+    processor) echo ${function_name_processor};;
+    subscribe) echo ${function_name_subscribe};;
+    custom)    echo ${function_name_custom};;
+    efs)       echo ${function_name_efs};;
+  esac
 }
 
 function _invoke() { # [payload]

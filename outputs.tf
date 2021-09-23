@@ -1,3 +1,7 @@
+output "prefix" {
+  value = local.prefix
+}
+
 output "repository_name" {
   value = aws_ecr_repository.main.name
 }
@@ -26,9 +30,9 @@ output "lambda_name_efs" {
   value = module.efs.function_name
 }
 
-output "lambda_name_extension" {
-  value = module.extension.function_name
-}
+#output "lambda_name_extension" {
+#  value = module.extension.function_name
+#}
 
 output "bucket_name" {
   value = local.bucket_name
