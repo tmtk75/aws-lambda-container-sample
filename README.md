@@ -97,7 +97,7 @@ The response is returned by a shell script, `./functions/bash/function.sh`.
 [0]$ ./main.sh tail custom
 ...
 
-[1]$ ./main.sh invoke-custom
+[1]$ ./main.sh invoke-custom '{}'
 {
     "StatusCode": 200,
     "ExecutedVersion": "$LATEST"

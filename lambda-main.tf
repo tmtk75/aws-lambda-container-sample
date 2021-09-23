@@ -49,39 +49,7 @@ resource "aws_security_group" "main" {
   vpc_id      = data.aws_vpc.main.id
 }
 
-# simple role to execute lambda.
-resource "aws_iam_role" "lambda-exec" {
-  name               = "${local.prefix}lambda-exec"
-  assume_role_policy = data.aws_iam_policy_document.lambda-exec.json
+module common {
+  source = "./modules/common"
+  prefix = local.prefix
 }
-
-data "aws_iam_policy_document" "lambda-exec" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-    principals {
-      type = "Service"
-      identifiers = [
-        "lambda.amazonaws.com"
-      ]
-    }
-  }
-}
-
-locals {
-  managedRoles = [
-    "AWSLambdaVPCAccessExecutionRole",
-  ]
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-exec" {
-  count      = length(local.managedRoles)
-  role       = aws_iam_role.lambda-exec.id
-  policy_arn = data.aws_iam_policy.lambda-exec[count.index].arn
-}
-
-data "aws_iam_policy" "lambda-exec" {
-  count = length(local.managedRoles)
-  name  = local.managedRoles[count.index]
-}
-

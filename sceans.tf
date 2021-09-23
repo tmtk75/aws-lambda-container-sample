@@ -1,10 +1,10 @@
 locals {
   lambda_config = {
-    role_arn           = aws_iam_role.lambda-exec.arn
+    role_arn           = local.simple_lambda_exec_role_arn 
     subnet_ids         = tolist(data.aws_subnet_ids.main.ids)
     security_group_ids = [aws_security_group.main.id]
   }
-  simple_lambda_exec_role_arn = aws_iam_role.lambda-exec.arn
+  simple_lambda_exec_role_arn = module.common.lambda_exec_role_arn
   bucket_name                 = "${local.prefix}firehose-target"
   log_group_name              = "/aws/lambda/${aws_lambda_function.main.function_name}"
 }
@@ -18,8 +18,6 @@ module "firehose" {
   bucket_name    = local.bucket_name
   depends_on = [
     aws_lambda_function.main,
-    aws_ecr_repository.main,
-    aws_iam_role_policy_attachment.lambda-exec,
     aws_s3_bucket.bucket,
   ]
 }
@@ -32,8 +30,6 @@ module "subscribe" {
   lambda_config  = local.lambda_config
   depends_on = [
     aws_lambda_function.main,
-    aws_ecr_repository.main,
-    aws_iam_role_policy_attachment.lambda-exec,
   ]
 }
 
@@ -49,3 +45,12 @@ module "efs" {
   vpc_id        = var.vpc_id
   lambda_config = local.lambda_config
 }
+
+#
+# incomplete
+#
+#module "extension" {
+#  source        = "./modules/with-extension"
+#  prefix        = local.prefix
+#  lambda_config = local.lambda_config
+#}

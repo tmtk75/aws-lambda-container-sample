@@ -86,15 +86,20 @@ function update-func() {
   echo
 }
 
-function tail() {
-  kind=${1-main}
+function _func_name() {
+  local kind=${1-main}
   case $kind in
-    main)      aws logs tail --follow "/aws/lambda/${function_name_main}";;
-    processor) aws logs tail --follow "/aws/lambda/${function_name_processor}";;
-    subscribe) aws logs tail --follow "/aws/lambda/${function_name_subscribe}";;
-    custom)    aws logs tail --follow "/aws/lambda/${function_name_custom}";;
-    efs   )    aws logs tail --follow "/aws/lambda/${function_name_efs}";;
+    main)      echo ${function_name_main};;
+    processor) echo ${function_name_processor};;
+    subscribe) echo ${function_name_subscribe};;
+    custom)    echo ${function_name_custom};;
+    efs)       echo ${function_name_efs};;
   esac
+}
+
+function tail() { # <name>
+  fn=`_func_name ${1}`
+  aws logs tail --follow "/aws/lambda/${fn}"
 }
 
 function get-func() {
@@ -152,18 +157,20 @@ function update-func-custom() {
     -target aws_lambda_layer_version.bash-runtime
 }
 
-function invoke-custom() {
+function invoke-custom() { # [payload]
   _func_name=${funciton_name_custom} _invoke $*
 }
 
-function invoke-efs() {
+function invoke-efs() { # [payload]
   _func_name=${function_name_efs} _invoke $*
 }
 
-function _invoke() {
+function _invoke() { # [payload]
   fp=${1-""}
   if [ -e "$fp" ]; then
     payload=$(cat $fp)
+  elif [ ! -z "$fp" ]; then
+    payload=$fp
   else
     payload=$(cat)
   fi
@@ -171,8 +178,8 @@ function _invoke() {
     --function-name ${_func_name} \
     --cli-binary-format raw-in-base64-out \
     --payload "${payload}" \
-    output-custom.json \
-    && cat output-custom.json
+    output.json \
+    && cat output.json
 }
 
 function help() {
@@ -181,7 +188,7 @@ Usage:
   main.sh [command] ...
 
 EOF
-  egrep "^function [^_]" $0 | sed -E 's/function +//;s/\(.*//;s/^/\t/' | sort
+  egrep "^function [^_]" $0 | sed -E 's/function +//;s/\(.*#//;s/\(.*//;s/^/\t/' | sort
   echo
   exit
 }

@@ -6,9 +6,6 @@ variable "lambda_config" {
     security_group_ids = []
   }
 }
-variable "source_dir" {
-  default = "layers/bash"
-}
 
 output "function_name" { value = aws_lambda_function.custom.function_name }
 
@@ -41,14 +38,18 @@ data "archive_file" "custom-function" {
 
 resource "aws_lambda_layer_version" "bash-runtime" {
   filename         = data.archive_file.bash-runtime.output_path
-  layer_name       = "bash-runtime"
+  layer_name       = "${local.prefix}bash-runtime"
   source_code_hash = data.archive_file.bash-runtime.output_base64sha256
+}
+
+locals {
+  source_dir = "layers/bash"
 }
 
 data "archive_file" "bash-runtime" {
   type        = "zip"
-  source_dir  = var.source_dir
-  output_path = "${var.source_dir}.zip"
+  source_dir  = local.source_dir
+  output_path = "${local.source_dir}.zip"
 }
 
 /*
