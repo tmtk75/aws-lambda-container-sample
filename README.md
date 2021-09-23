@@ -35,7 +35,7 @@ $ terraform apply --auto-approve
 ```
 
 ```bash
-# Update cache.
+# Update cache again.
 $ make
 ...
 ```

@@ -53,6 +53,7 @@ function cleanup-s3() {
 }
 
 function cleanup-log-groups() {
+  set +e # ignore errors
   for name in custom efs main processor ruby subscribe; do
     aws logs delete-log-group --log-group "/aws/lambda/${prefix}${name}"
   done
