@@ -1,10 +1,16 @@
 @startuml
+title All provided scenarios
+
 !$mainColor = "indigo"
 !$mainElementBgcolor = "#ffffff"
 skinparam DefaultFontName Helvetica Neue
 skinparam shadowing false
 skinparam BackgroundColor transparent
 skinparam Control {
+    BackgroundColor $mainElementBgcolor
+    BorderColor $mainColor
+}
+skinparam Entity {
     BackgroundColor $mainElementBgcolor
     BorderColor $mainColor
 }
@@ -29,20 +35,22 @@ skinparam rectangle {
 
 !includeurl AWSPuml/General/User.puml
 !includeurl AWSPuml/General/Client.puml
-!includeurl AWSPuml/Compute/Lambda.puml
+!includeurl AWSPuml/Compute/LambdaLambdaFunction.puml
 !includeurl AWSPuml/Storage/SimpleStorageServiceBucket.puml
 !includeurl AWSPuml/Storage/SimpleStorageServiceObject.puml
+!includeurl AWSPuml/Storage/ElasticFileSystemStandard.puml
 !includeurl AWSPuml/Analytics/KinesisFirehose.puml
 !includeurl AWSPuml/Containers/ElasticContainerRegistry.puml
 !includeurl AWSPuml/ManagementGovernance/CloudwatchLogs.puml
 !includeurl AWSPuml/SecurityIdentityCompliance/IdentityAccessManagementRole.puml
+!includeurl AWSPuml/ManagementGovernance/CloudwatchEventTimeBased.puml
 
 ' left to right direction
 top to bottom direction
 
 User(User, "Actor", "Invoke the event source")
-Lambda(EventSourceLambda, "Event source", "")
-ElasticContainerRegistry(ImageRegistry, "Store images", "")
+LambdaLambdaFunction(EventSourceLambda, "Event source", "")
+ElasticContainerRegistry(ImageRegistry, "Store images", "provide functions writtein a few runtimes")
 SimpleStorageServiceBucket(S3Bucket, "Records are propagated", "")
 CloudWatchLogs(CWLogsLogGroup, "Target log group", "", "")
 
@@ -51,7 +59,7 @@ User -[#black,dashed,thickness=4]-> EventSourceLambda
 EventSourceLambda .. CWLogsLogGroup
 
 rectangle "Scenario firehose propagates" {
-    Lambda(LambdaProcessor, "Transform records", "")
+    LambdaLambdaFunction(LambdaProcessor, "Transform records", "")
     KinesisFirehose(FirehoseS3Destination, "Propagate records", "")
     IdentityAccessManagementRole(IAMRoleSubscriptionFilter, "Allow PassRole", "Mediate the firehose and the log group")
     IdentityAccessManagementRole(IAMRoleFirehose, "Allow a few actions", "Allow to write to the bucket and invoke the processor")
@@ -68,10 +76,30 @@ rectangle "Scenario firehose propagates" {
 
 rectangle "Scenario to subscribe simply" {
     control "==Associate the lambda with the log group" <<SubscriptionFilter>> as SubscriptionFilterLambda
-    Lambda(Lambdasubscribe, "Process log events", "")
+    LambdaLambdaFunction(Lambdasubscribe, "Process log events", "")
 
     SubscriptionFilterLambda . CWLogsLogGroup
     SubscriptionFilterLambda .. Lambdasubscribe
+}
+
+ElasticFileSystemStandard(EFSMountPoint, "A file system", "")
+
+rectangle "Scenario to use EFS" {
+    LambdaLambdaFunction(EFSLambda, "Allowed to access EFS", "")
+    IdentityAccessManagementRole(IAMRoleEFS, "Allow EFS access", "")
+
+    EFSLambda .. IAMRoleEFS
+    EFSLambda .. EFSMountPoint
+}
+
+CloudWatchEventTimeBased(CWEventCron, "Invoke every 2 hours", "")
+
+rectangle "Scenario to use bash\non a custom runtime" {
+    entity "==Provide way to run bash script" <<CustomRuntime>> as CustomRuntimeLayer
+    LambdaLambdaFunction(LambdaCustomRuntime, "Invoked periodically", "Run commands given as input")
+
+    LambdaCustomRuntime .. CWEventCron
+    LambdaCustomRuntime .. CustomRuntimeLayer
 }
 
 @enduml
