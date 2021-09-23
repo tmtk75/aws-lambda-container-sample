@@ -34,6 +34,10 @@ resource "aws_lambda_function" "main" {
   ]
 }
 
+resource "aws_cloudwatch_log_group" "main" {
+  name = "/aws/lambda/${aws_lambda_function.main.function_name}"
+}
+
 resource "aws_ecr_repository" "main" {
   name                 = "${local.prefix}main"
   image_tag_mutability = "MUTABLE"

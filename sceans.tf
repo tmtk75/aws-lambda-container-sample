@@ -6,7 +6,7 @@ locals {
   }
   simple_lambda_exec_role_arn = module.common.lambda_exec_role_arn
   bucket_name                 = "${local.prefix}firehose-target"
-  log_group_name              = "/aws/lambda/${aws_lambda_function.main.function_name}"
+  log_group_name              = aws_cloudwatch_log_group.main.name
 }
 
 module "firehose" {
@@ -30,6 +30,7 @@ module "subscribe" {
   lambda_config  = local.lambda_config
   depends_on = [
     aws_lambda_function.main,
+    aws_cloudwatch_log_group.main,
   ]
 }
 

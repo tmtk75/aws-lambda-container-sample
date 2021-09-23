@@ -83,7 +83,7 @@ function update-func() {
 }
 
 function tail() { # <name>
-  fn=`_func_name ${1}`
+  fn=`_func_name ${1-main}`
   aws logs tail --follow "/aws/lambda/${fn}"
 }
 

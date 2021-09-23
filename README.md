@@ -25,6 +25,7 @@ $ make build-nodejs
 ...
 
 # Push images.
+$ make  # update cached values.
 $ ./main.sh docker-login
 $ ./main.sh push nodejs
 
@@ -46,9 +47,9 @@ If you see this error, the image is not ready. Check the ECR repository.
 ### Scenario: propagation to s3 bucket thru firehose
 ```bash
 # Start tailing log of main lambda
-[0]$ ./main.sh tail
+[0]$ ./main.sh tail main
 
-[1]$ ./main.sh invoke
+[1]$ ./main.sh invoke-main
 {
     "StatusCode": 200,
     "ExecutedVersion": "$LATEST"
@@ -94,16 +95,38 @@ The last top level field, `"message"`, is added by the processor.
 One of lambda functions is deployed as custom runtime runs on AmazonLinux2.
 The response is returned by a shell script, `./functions/bash/function.sh`.
 ```bash
-[0]$ ./main.sh tail custom
-...
-
-[1]$ ./main.sh invoke-custom '{}'
+[0]$ echo '{"commands":["ls /"]}' | ./main.sh invoke-custom
 {
     "StatusCode": 200,
     "ExecutedVersion": "$LATEST"
 }
-Echoing request: '{}'
+bin
+boot
+dev
 ...
+
+[1]$ ./main.sh tail custom
+... # You will see logs from custom runtime.
+```
+
+
+### Scenario: Save state in EFS
+A file system is attached to a function.
+You can try stateful-lambda.
+```
+$ echo '{"commands":["date >> /mnt/efs/foo", "cat /mnt/efs/foo"]}' | ./main.sh invoke-efs
+{
+    "StatusCode": 200,
+    "ExecutedVersion": "$LATEST"
+}
+["","Thu Sep 23 05:01:25 UTC 2021\n"]
+
+$ echo '{"commands":["date >> /mnt/efs/foo", "cat /mnt/efs/foo"]}' | ./main.sh invoke-efs
+{
+    "StatusCode": 200,
+    "ExecutedVersion": "$LATEST"
+}
+["","Thu Sep 23 05:01:25 UTC 2021\nThu Sep 23 05:01:30 UTC 2021\n"]
 ```
 
 
