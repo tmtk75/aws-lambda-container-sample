@@ -10,10 +10,6 @@ variable "my_prefix" {
   description = "Your unique string to be used for name of created resource like s3 bucket, kinesis firehose, security group, etc."
 }
 
-//variable "iam_role_name" {
-//  description = "Name of an IAM role to invoke main lambda."
-//}
-
 variable "vpc_id" {
   description = "VPC ID to be used"
 }
@@ -25,9 +21,8 @@ variable "subnet_ids_tags" {
   }
 }
 
-variable "image_tag" {
-  default     = "nodejs"
-  description = "Tag of image to be deployed for main Lambda."
+variable "security_group_id" {
+  type = string
 }
 
 variable "tags" {

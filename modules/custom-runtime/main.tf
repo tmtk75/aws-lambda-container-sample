@@ -1,16 +1,6 @@
-variable "prefix" {}
-variable "lambda_config" {
-  default = {
-    role_arn           = ""
-    subnet_ids         = ""
-    security_group_ids = []
-  }
-}
-
-output "function_name" { value = aws_lambda_function.custom.function_name }
-
 locals {
-  prefix = var.prefix
+  prefix     = var.prefix
+  source_dir = "layers/bash"
 }
 
 resource "aws_lambda_function" "custom" {
@@ -30,6 +20,16 @@ resource "aws_lambda_function" "custom" {
   }
 }
 
+data "archive_file" "bash-runtime" {
+  type        = "zip"
+  source_dir  = local.source_dir
+  output_path = "${local.source_dir}.zip"
+}
+
+resource "aws_cloudwatch_log_group" "log" {
+  name = "/aws/lambda/${aws_lambda_function.custom.function_name}"
+}
+
 data "archive_file" "custom-function" {
   type        = "zip"
   source_dir  = "functions/bash"
@@ -42,19 +42,6 @@ resource "aws_lambda_layer_version" "bash-runtime" {
   source_code_hash = data.archive_file.bash-runtime.output_base64sha256
 }
 
-locals {
-  source_dir = "layers/bash"
-}
-
-data "archive_file" "bash-runtime" {
-  type        = "zip"
-  source_dir  = local.source_dir
-  output_path = "${local.source_dir}.zip"
-}
-
-/*
- *
- */
 resource "aws_cloudwatch_event_rule" "periodic" {
   name        = "${local.prefix}custom-periodic"
   description = ""
