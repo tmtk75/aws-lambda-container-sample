@@ -18,17 +18,47 @@ The response is returned by a shell script, `./functions/bash/function.sh`.
 	         --function-name issue8432-custom \
 	         --payload '{"commands":[ \
 	                        "curl https://checkip.amazonaws.com", \
-			        "ls / | head -3", \
-			        "echo 'hello'" \
+			        "ls / | head -3"
 			      ]}' \
 	         && cat output.txt
 {
     "StatusCode": 200,
     "ExecutedVersion": "$LATEST"
 }
-54.178.235.198  # the response of the curl
+54.178.235.198  # the response of the curl. Internet accessible.
 bin             # ls /
-boot            #
+boot            #    Amazon Linux FS is seen.
 dev             #
-hello           # output of the echo
+```
+
+## Layout
+```
+.
+|-- Makefile
+|-- README.md
+|-- functions
+|   |-- bash
+|   |   `-- function.sh
+|   `-- bash.zip
+|-- layers
+|   |-- bash
+|   |   |-- Makefile
+|   |   |-- README.md
+|   |   |-- bin
+|   |   |   `-- jq
+|   |   `-- bootstrap
+|   `-- bash.zip
+|-- main.tf
+|-- modules
+|   |-- common
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   `-- variables.tf
+|   `-- custom-runtime
+|       |-- main.tf
+|       |-- outputs.tf
+|       `-- variables.tf
+|-- my.auto.tfvars
+|-- outputs.tf
+`-- variables.tf
 ```

@@ -17,8 +17,7 @@ run:
 	         --function-name issue8432-custom \
 	         --payload '{"commands":[ \
 	                        "curl https://checkip.amazonaws.com", \
-			        "ls / | head -3", \
-			        "echo 'hello'" \
+			        "ls / | head -3" \
 			      ]}' \
 	         && cat output.txt
 
